@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Products</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font import for Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to right top, #a7b7f5, #d2a7f5); /* Gradient background */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Custom styles for the modal overlay and content */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            z-index: 999;
+        }
+        .modal-content {
+            z-index: 1000;
+        }
+        /* Custom styles for the message box */
+        #message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 1001;
+        }
+        #message-box.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+    <header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-6 shadow-lg rounded-b-lg mb-6">
+        <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
+            <h1 class="text-3xl font-bold mb-4 sm:mb-0 flex items-center">
+                <span class="mr-3">&#128722;</span> Our Products
+            </h1>
+            <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                <input type="text" id="search-input" placeholder="Search products..." class="p-2 rounded-md bg-white text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto transition duration-300">
+                <select id="category-filter" class="p-2 rounded-md bg-white text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
+                    <option value="all">All Categories</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="fashion">Fashion</option>
+                    <option value="home">Home & Kitchen</option>
+                    <option value="books">Books</option>
+                    <option value="accessories">Accessories</option>
+                </select>
+                <select id="sort-by" class="p-2 rounded-md bg-white text-gray-800 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
+                    <option value="default">Sort By</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="rating-desc">Rating</option>
+                </select>
+                <button id="view-favorites-btn" class="bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600 transition duration-300 shadow-sm w-full sm:w-auto">View Favorites</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 flex-grow">
+        <!-- Product Listing Grid -->
+        <section class="md:col-span-3">
+            <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <!-- Products will be dynamically loaded here by JavaScript -->
+            </div>
+            <div id="no-products-message" class="text-center text-gray-600 mt-8 text-lg hidden">
+                No products found matching your criteria.
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white p-6 mt-8 rounded-t-lg">
+        <div class="container mx-auto text-center">
+            <p>&copy; 2025 Our Products. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Product Details Modal -->
+    <div id="product-modal" class="fixed inset-0 flex items-center justify-center hidden modal-overlay">
+        <div class="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full modal-content transform scale-95 transition-transform duration-300">
+            <h3 id="modal-product-name" class="text-2xl font-bold mb-3 text-gray-900"></h3>
+            <p id="modal-product-description" class="text-gray-700 mb-4">Comfort & durability.</p>
+            <div class="flex justify-around space-x-4 mt-6">
+                <button id="add-to-favorites-btn" class="flex-1 bg-pink-500 text-white py-3 px-6 rounded-md hover:bg-pink-600 transition duration-300 shadow-lg font-semibold flex items-center justify-center">
+                    <span class="mr-2">&#x2764;</span> Add to Favorites
+                </button>
+                <button id="add-to-cart-btn" class="flex-1 bg-blue-500 text-white py-3 px-6 rounded-md hover:bg-blue-600 transition duration-300 shadow-lg font-semibold flex items-center justify-center">
+                    <span class="mr-2">&#128722;</span> Add to Cart
+                </button>
+            </div>
+            <button id="modal-close-btn" class="mt-6 w-full bg-gray-300 text-gray-800 py-3 rounded-md hover:bg-gray-400 transition duration-300 shadow-md font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom Message Box -->
+    <div id="message-box" class="hidden"></div>
+
+    <script>
+        // Sample Product Data - Expanded
+        const products = [
+            {
+                id: 1,
+                name: "Smartphone X",
+                category: "electronics",
+                price: 12000.00,
+                rating: 4.2,
+                image: "phone.jpg",
+                description: "Experience the next generation of mobile technology with stunning camera and performance."
+            },
+            {
+                id: 2,
+                name: "Jeans Slim Fit",
+                category: "fashion",
+                price: 2000.00,
+                rating: 4.0,
+                image: "jeans.jpg",
+                description: "Stylish and comfortable slim fit jeans for everyday wear."
+            },
+            {
+                id: 3,
+                name: "Laptop Pro",
+                category: "electronics",
+                price: 55000.00,
+                rating: 4.5,
+                image: "laptop.jpg",
+                description: "Powerful laptop for work and play, with stunning visuals and fast processing."
+            },
+            {
+                id: 4,
+                name: "T-shirt Casual",
+                category: "fashion",
+                price: 700.00,
+                rating: 3.8,
+                image: "t-shirt.jpg",
+                description: "Comfortable and breathable casual t-shirt, perfect for any occasion."
+            },
+            {
+                id: 5,
+                name: "Headphones Pro",
+                category: "electronics",
+                price: 1500.00,
+                rating: 4.1,
+                image: "headphone.jpg",
+                description: "Immersive sound experience with noise-cancelling technology."
+            },
+            {
+                id: 6,
+                name: "The Novel",
+                category: "books",
+                price: 500.00,
+                rating: 4.6,
+                image: "bookshelf.jpg",
+                description: "An inspiring and captivating story that will keep you hooked."
+            },
+            {
+                id: 7,
+                name: "Indian Cookbook",
+                category: "books",
+                price: 800.00,
+                rating: 4.3,
+                image: "cookbook.jpg",
+                description: "Explore authentic Indian recipes with easy-to-follow instructions."
+            },
+            {
+                id: 8,
+                name: "Sports Shoes",
+                category: "fashion",
+                price: 2200.00,
+                rating: 4.0,
+                image: "shoe.jpg",
+                description: "Comfortable and durable sports shoes for your daily workouts."
+            },
+            {
+                id: 9,
+                name: "Tablet Elite",
+                category: "electronics",
+                price: 25000.00,
+                rating: 4.4,
+                image: "tab.jpg",
+                description: "Portable and powerful tablet for productivity and entertainment."
+            },
+            {
+                id: 10,
+                name: "Winter Jacket",
+                category: "fashion",
+                price: 3500.00,
+                rating: 4.5,
+                image: "jacket.jpg",
+                description: "Warm and stylish jacket to keep you cozy in cold weather."
+            },
+            {
+                id: 11,
+                name: "Self-Help Book",
+                category: "books",
+                price: 450.00,
+                rating: 4.7,
+                image: "book.jpg",
+                description: "A guide to personal growth and achieving your goals."
+            },
+            {
+                id: 12,
+                name: "Smartwatch Alpha",
+                category: "accessories",
+                price: 18000.00,
+                rating: 4.8,
+                image: "watch.jpg",
+                description: "Track your fitness, receive notifications, and stay connected on the go."
+            },
+        ];
+
+        // Get DOM elements
+        const productList = document.getElementById('product-list');
+        const searchInput = document.getElementById('search-input');
+        const categoryFilter = document.getElementById('category-filter');
+        const sortBy = document.getElementById('sort-by');
+        const noProductsMessage = document.getElementById('no-products-message');
+        const productModal = document.getElementById('product-modal');
+        const modalProductName = document.getElementById('modal-product-name');
+        const modalProductDescription = document.getElementById('modal-product-description');
+        const addToFavoritesBtn = document.getElementById('add-to-favorites-btn');
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const messageBox = document.getElementById('message-box');
+
+        let filteredProducts = [...products]; // Working copy of products to filter and sort
+        let currentProductId = null; // To store the ID of the product currently in the modal
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add('show');
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                }, 500); // Wait for fade-out transition
+            }, 2000); // Display message for 2 seconds
+        }
+
+        /**
+         * Renders the product list based on the provided array of products.
+         * @param {Array} productsToRender - The array of products to display.
+         */
+        function renderProducts(productsToRender) {
+            productList.innerHTML = ''; // Clear existing products
+            if (productsToRender.length === 0) {
+                noProductsMessage.classList.remove('hidden');
+                return;
+            }
+            noProductsMessage.classList.add('hidden');
+
+            productsToRender.forEach(product => {
+                const productCard = `
+                    <div class="bg-white rounded-lg shadow-md overflow-hidden transform hover:scale-105 transition duration-300 flex flex-col cursor-pointer" data-product-id="${product.id}">
+                        <img src="${product.image}" onerror="this.onerror=null;this.src='https://placehold.co/400x300/e0e0e0/808080?text=Image+Error';" alt="${product.name}" class="w-full h-48 object-cover">
+                        <div class="p-5 flex-grow flex flex-col justify-between">
+                            <div>
+                                <h3 class="text-xl font-semibold text-gray-900 mb-2">${product.name}</h3>
+                                <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mb-2 capitalize">${product.category}</span>
+                                <div class="flex items-center mb-3">
+                                    <span class="text-yellow-500 text-lg mr-1">&#9733;</span>
+                                    <span class="text-gray-700 font-medium">${product.rating.toFixed(1)}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-4">
+                                <span class="text-2xl font-bold text-blue-600">₹${product.price.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                productList.insertAdjacentHTML('beforeend', productCard);
+            });
+
+            // Add event listeners to newly rendered product cards
+            // Using event delegation on the productList parent for efficiency
+            productList.querySelectorAll('.flex.flex-col.cursor-pointer').forEach(card => {
+                card.addEventListener('click', (event) => {
+                    const productId = parseInt(event.currentTarget.dataset.productId);
+                    openProductModal(productId);
+                });
+            });
+        }
+
+        /**
+         * Opens the product details modal.
+         * @param {number} productId - The ID of the product to display.
+         */
+        function openProductModal(productId) {
+            const product = products.find(p => p.id === productId);
+            if (product) {
+                currentProductId = productId;
+                modalProductName.textContent = product.name;
+                modalProductDescription.textContent = product.description;
+                productModal.classList.remove('hidden');
+                // Animate modal entry
+                setTimeout(() => {
+                    productModal.querySelector('.modal-content').classList.remove('scale-95');
+                    productModal.querySelector('.modal-content').classList.add('scale-100');
+                }, 10); // Small delay for the transition to apply
+            }
+        }
+
+        /**
+         * Closes the product details modal.
+         */
+        function closeProductModal() {
+            productModal.querySelector('.modal-content').classList.remove('scale-100');
+            productModal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => {
+                productModal.classList.add('hidden');
+                currentProductId = null; // Clear the current product ID
+            }, 300); // Match transition duration for a smooth exit
+        }
+
+        /**
+         * Handles adding a product to favorites.
+         */
+        function handleAddToFavorites() {
+            const product = products.find(p => p.id === currentProductId);
+            if (product) {
+                showMessageBox(`${product.name} added to favorites!`);
+                // Placeholder for actual logic: In a real application, you would
+                // send this data to a backend or store it locally (e.g., in localStorage)
+                console.log(`Added ${product.name} to favorites.`);
+            }
+            closeProductModal();
+        }
+
+        /**
+         * Handles adding a product to the cart.
+         */
+        function handleAddToCart() {
+            const product = products.find(p => p.id === currentProductId);
+            if (product) {
+                showMessageBox(`${product.name} added to cart!`);
+                // Placeholder for actual logic: In a real application, you would
+                // update a cart state, send to backend, etc.
+                console.log(`Added ${product.name} to cart.`);
+            }
+            closeProductModal();
+        }
+
+        /**
+         * Applies filters and sorting to the products and re-renders the list.
+         */
+        function applyFiltersAndSort() {
+            let currentProducts = [...products]; // Start with the original full list
+
+            // 1. Apply Search Filter (by name or category)
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm) {
+                currentProducts = currentProducts.filter(product =>
+                    product.name.toLowerCase().includes(searchTerm) ||
+                    product.category.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // 2. Apply Category Filter
+            const selectedCategory = categoryFilter.value;
+            if (selectedCategory !== 'all') {
+                currentProducts = currentProducts.filter(product => product.category === selectedCategory);
+            }
+
+            // 3. Apply Sorting
+            const sortOption = sortBy.value;
+            switch (sortOption) {
+                case 'price-asc':
+                    currentProducts.sort((a, b) => a.price - b.price);
+                    break;
+                case 'price-desc':
+                    currentProducts.sort((a, b) => b.price - a.price);
+                    break;
+                case 'rating-desc':
+                    currentProducts.sort((a, b) => b.rating - a.rating);
+                    break;
+                case 'default':
+                default:
+                    // No specific sorting applied, maintains filtered order
+                    break;
+            }
+
+            filteredProducts = currentProducts; // Update the global filteredProducts for future operations
+            renderProducts(filteredProducts); // Re-render the products based on new filters/sort
+        }
+
+        /**
+         * Resets all filters and sorting to their default states.
+         * This function isn't explicitly tied to a button in this version
+         * but can be called by an event listener if a "Reset" button is added.
+         */
+        function resetAllFilters() {
+            searchInput.value = '';
+            categoryFilter.value = 'all';
+            sortBy.value = 'default';
+            filteredProducts = [...products]; // Reset to original full list
+            renderProducts(filteredProducts);
+        }
+
+        // --- Event Listeners ---
+        // Listen for real-time search input
+        searchInput.addEventListener('keyup', applyFiltersAndSort);
+        // Listen for category filter changes
+        categoryFilter.addEventListener('change', applyFiltersAndSort);
+        // Listen for sort option changes
+        sortBy.addEventListener('change', applyFiltersAndSort);
+
+        // Listen for modal close button click
+        modalCloseBtn.addEventListener('click', closeProductModal);
+        // Listen for "Add to Favorites" button click inside the modal
+        addToFavoritesBtn.addEventListener('click', handleAddToFavorites);
+        // Listen for "Add to Cart" button click inside the modal
+        addToCartBtn.addEventListener('click', handleAddToCart);
+
+        // Placeholder for "View Favorites" button - shows a message
+        document.getElementById('view-favorites-btn').addEventListener('click', () => {
+            showMessageBox('View Favorites feature coming soon!');
+        });
+
+        // Initial render of all products when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            renderProducts(products);
+        });
+
+    </script>
+</body>
+</html>
